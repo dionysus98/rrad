@@ -1,17 +1,21 @@
 pub mod back_prop;
 pub mod engine;
+pub mod nn;
 use engine::V;
 
 fn main() {
-    let v1 = V::new(3.0);
-    let v2 = V::new(2.0);
+    let a = V::new(2.0);
+    let b = V::new(4.0);
+    let c = V::new(5.0);
+    let d = V::new(1.0);
+    let f = V::new(4.0);
+    let g = V::new(8.0);
 
-    let v3 = v1 * v2;
+    let e = ((f * (d * (c + b))) / a) / g;
 
-    let v4 = v3 * V::new(5.0);
+    let e = e.relu();
 
-    for mut d in v4.relu().backward() {
-        d.children = vec![];
-        dbg!("{:?}", d);
+    for d in e.backward() {
+        println!("data = {}; grad = {}; op = {:?}", d.data, d.grad, d.op)
     }
 }

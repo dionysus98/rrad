@@ -58,7 +58,7 @@ impl V {
         out
     }
 
-    fn _backward(self) -> Self {
+    fn _back_propogate(self) -> Self {
         match self.op {
             Vops::Add => back_prop::add(self),
             Vops::Sub => back_prop::sub(self),
@@ -84,7 +84,7 @@ impl V {
     }
 
     fn backward_recur(&mut self) -> Self {
-        let mut v = self.clone()._backward();
+        let mut v = self.clone()._back_propogate();
         let mut cls = vec![];
         if !self.children.is_empty() {
             for cl in v.children.iter_mut() {
