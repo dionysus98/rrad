@@ -1,4 +1,4 @@
-use crate::engine::V;
+use crate::engine::{Vops, V};
 
 pub fn add(v: &mut V) {
     for cl in v.children.iter_mut() {
@@ -47,5 +47,19 @@ pub fn relu(v: &mut V) {
     if let Some(cl) = v.children.iter_mut().next() {
         let data = if v.data > 0.0 { 1.0 } else { 0.0 };
         cl.grad += v.grad * data;
+    }
+}
+
+pub fn back_propogate(v: &mut V) {
+    match v.op {
+        Vops::Add => add(v),
+        Vops::Sub => sub(v),
+        Vops::Mul => mul(v),
+        Vops::Div => div(v),
+        Vops::Exp => exp(v),
+        Vops::Relu => relu(v),
+        Vops::Tanh => todo!(),
+        Vops::Sigm => todo!(),
+        Vops::None => (),
     }
 }

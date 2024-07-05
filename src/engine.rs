@@ -69,26 +69,11 @@ impl V {
         visited.to_vec()
     }
 
-    fn _back_propogate(&mut self) {
-        match self.op {
-            Vops::Add => back_prop::add(self),
-            Vops::Sub => back_prop::sub(self),
-            Vops::Mul => back_prop::mul(self),
-            Vops::Div => back_prop::div(self),
-            Vops::Exp => back_prop::exp(self),
-            Vops::Relu => back_prop::relu(self),
-            Vops::Tanh => todo!(),
-            Vops::Sigm => todo!(),
-            Vops::None => (),
-        }
-    }
-
     fn backward_recur(&mut self) {
-        self._back_propogate();
-        let mut cls = vec![];
+        back_prop::back_propogate(self);
         if !self.children.is_empty() {
             for cl in self.children.iter_mut() {
-                cls.push(cl.backward_recur())
+                cl.backward_recur()
             }
         }
     }
