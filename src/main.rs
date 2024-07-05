@@ -13,9 +13,10 @@ fn main() {
 
     let e = ((f * (d * (c + b))) / a) / g;
 
-    let e = e.relu();
+    let mut e = e.relu();
+    e.backward();
 
-    for d in e.backward() {
+    for d in e.build_topo(&mut vec![]) {
         println!("data = {}; grad = {}; op = {:?}", d.data, d.grad, d.op)
     }
 }

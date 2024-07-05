@@ -58,21 +58,7 @@ impl V {
         out
     }
 
-    fn _back_propogate(self) -> Self {
-        match self.op {
-            Vops::Add => back_prop::add(self),
-            Vops::Sub => back_prop::sub(self),
-            Vops::Mul => back_prop::mul(self),
-            Vops::Div => back_prop::div(self),
-            Vops::Exp => back_prop::exp(self),
-            Vops::Relu => back_prop::relu(self),
-            Vops::Tanh => todo!(),
-            Vops::Sigm => todo!(),
-            Vops::None => self,
-        }
-    }
-
-    fn build_topo(&mut self, visited: &mut Vec<Self>) -> Vec<Self> {
+    pub fn build_topo(&mut self, visited: &mut Vec<Self>) -> Vec<Self> {
         if !visited.contains(&self) {
             visited.push(self.clone());
             for cl in self.children.iter_mut() {
@@ -83,21 +69,33 @@ impl V {
         visited.to_vec()
     }
 
-    fn backward_recur(&mut self) -> Self {
-        let mut v = self.clone()._back_propogate();
+    fn _back_propogate(&mut self) {
+        match self.op {
+            Vops::Add => back_prop::add(self),
+            Vops::Sub => back_prop::sub(self),
+            Vops::Mul => back_prop::mul(self),
+            Vops::Div => back_prop::div(self),
+            Vops::Exp => back_prop::exp(self),
+            Vops::Relu => back_prop::relu(self),
+            Vops::Tanh => todo!(),
+            Vops::Sigm => todo!(),
+            Vops::None => (),
+        }
+    }
+
+    fn backward_recur(&mut self) {
+        self._back_propogate();
         let mut cls = vec![];
         if !self.children.is_empty() {
-            for cl in v.children.iter_mut() {
+            for cl in self.children.iter_mut() {
                 cls.push(cl.backward_recur())
             }
         }
-        v.children = cls;
-        v
     }
 
-    pub fn backward(mut self) -> Vec<Self> {
+    pub fn backward(&mut self) {
         self.grad = 1.0;
-        self.backward_recur().build_topo(&mut vec![])
+        self.backward_recur();
     }
 }
 
