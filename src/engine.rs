@@ -160,3 +160,10 @@ impl Div for V {
         out
     }
 }
+
+#[macro_export]
+macro_rules! v {
+    ( $x:expr ) => {
+        V::new($x)
+    };
+}
