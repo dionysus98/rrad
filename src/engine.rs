@@ -14,30 +14,17 @@ pub enum Vops {
     None,
 }
 
-#[derive(Debug, PartialEq)]
-pub struct V<'a> {
+#[derive(Debug, Clone, PartialEq)]
+pub struct V {
     pub data: f32,
     pub grad: f32,
     pub op: Vops,
-    pub children: Vec<&'a mut V<'a>>,
+    pub children: Vec<V>,
     pub context: Option<f32>,
     pub label: Option<&'static str>,
 }
 
-impl<'a> Clone for V<'a> {
-    fn clone(&self) -> Self {
-        Self {
-            data: self.data.clone(),
-            grad: self.grad.clone(),
-            op: self.op.clone(),
-            children: vec![],
-            context: self.context.clone(),
-            label: self.label.clone(),
-        }
-    }
-}
-
-impl<'a> V<'a> {
+impl V {
     pub fn new(data: f32, label: Option<&'static str>) -> Self {
         Self {
             data,
@@ -49,7 +36,7 @@ impl<'a> V<'a> {
         }
     }
 
-    pub fn powf(&'a mut self, pow: f32) -> Self {
+    pub fn powf(self, pow: f32) -> Self {
         Self {
             data: self.data.powf(pow),
             grad: self.grad,
@@ -60,7 +47,7 @@ impl<'a> V<'a> {
         }
     }
 
-    pub fn relu(&'a mut self) -> Self {
+    pub fn relu(self) -> Self {
         Self {
             data: if self.data < 0.0 { 0.0 } else { self.data },
             grad: self.grad,
@@ -96,8 +83,8 @@ impl<'a> V<'a> {
     }
 }
 
-impl<'a> Add for &'a mut V<'a> {
-    type Output = V<'a>;
+impl Add for V {
+    type Output = V;
 
     fn add(self, other: Self) -> Self::Output {
         V {
@@ -111,8 +98,8 @@ impl<'a> Add for &'a mut V<'a> {
     }
 }
 
-impl<'a> Sub for &'a mut V<'a> {
-    type Output = V<'a>;
+impl Sub for V {
+    type Output = V;
 
     fn sub(self, other: Self) -> Self::Output {
         V {
@@ -126,8 +113,8 @@ impl<'a> Sub for &'a mut V<'a> {
     }
 }
 
-impl<'a> Mul for &'a mut V<'a> {
-    type Output = V<'a>;
+impl Mul for V {
+    type Output = V;
 
     fn mul(self, other: Self) -> Self::Output {
         V {
@@ -141,8 +128,8 @@ impl<'a> Mul for &'a mut V<'a> {
     }
 }
 
-impl<'a> Div for &'a mut V<'a> {
-    type Output = V<'a>;
+impl Div for V {
+    type Output = V;
 
     fn div(self, other: Self) -> Self::Output {
         V {
@@ -159,10 +146,10 @@ impl<'a> Div for &'a mut V<'a> {
 #[macro_export]
 macro_rules! v {
     ( $x:expr ) => {{
-        &mut V::new($x, None)
+        V::new($x, None)
     }};
 
     ( $x:expr, $y:expr ) => {
-        &mut V::new($x, Some($y))
+        V::new($x, Some($y))
     };
 }

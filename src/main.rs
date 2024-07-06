@@ -12,11 +12,11 @@ fn main() {
     let f = v!(4.0, "f");
     let g = v!(8.0);
 
-    let one = &mut (f * d);
-    let two = &mut (c + b);
-    let three = &mut (one * two);
-    let e = &mut (three / g);
-    let e = &mut (e + a);
+    let one = f * d;
+    let two = c + b;
+    let three = one * two;
+    let e = three / g;
+    let e = e + a;
 
     let mut e = e.relu();
     e.backward();
@@ -28,7 +28,7 @@ fn main() {
         )
     }
 
-    // let n = n!(3);
+    let n = MLP!(2, &[2, 2, 1]);
 
-    // dbg!(n)
+    dbg!(n);
 }
