@@ -14,53 +14,69 @@ pub enum Vops {
     None,
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct V {
+#[derive(Debug, PartialEq)]
+pub struct V<'a> {
     pub data: f32,
     pub grad: f32,
     pub op: Vops,
-    pub children: Vec<V>,
+    pub children: Vec<&'a mut V<'a>>,
     pub context: Option<f32>,
+    pub label: Option<&'static str>,
 }
 
-impl V {
-    pub fn new(data: f32) -> Self {
+impl<'a> Clone for V<'a> {
+    fn clone(&self) -> Self {
+        Self {
+            data: self.data.clone(),
+            grad: self.grad.clone(),
+            op: self.op.clone(),
+            children: vec![],
+            context: self.context.clone(),
+            label: self.label.clone(),
+        }
+    }
+}
+
+impl<'a> V<'a> {
+    pub fn new(data: f32, label: Option<&'static str>) -> Self {
         Self {
             data,
             grad: 0.0,
             op: Vops::None,
             children: vec![],
             context: None,
+            label,
         }
     }
 
-    pub fn powf(self, pow: f32) -> Self {
+    pub fn powf(&'a mut self, pow: f32) -> Self {
         Self {
             data: self.data.powf(pow),
             grad: self.grad,
             op: Vops::Exp,
             children: vec![self],
             context: Some(pow),
+            label: None,
         }
     }
 
-    pub fn relu(self) -> Self {
+    pub fn relu(&'a mut self) -> Self {
         Self {
             data: if self.data < 0.0 { 0.0 } else { self.data },
             grad: self.grad,
             op: Vops::Relu,
             children: vec![self],
             context: None,
+            label: None,
         }
     }
 
     pub fn build_topo(&mut self, visited: &mut Vec<Self>) -> Vec<Self> {
-        if !visited.contains(self) {
+        if !visited.contains(&self) {
             visited.push(self.clone());
             for cl in self.children.iter_mut() {
                 cl.build_topo(visited);
             }
-            return visited.to_vec();
         }
         visited.to_vec()
     }
@@ -80,65 +96,73 @@ impl V {
     }
 }
 
-impl Add for V {
-    type Output = Self;
+impl<'a> Add for &'a mut V<'a> {
+    type Output = V<'a>;
 
     fn add(self, other: Self) -> Self::Output {
-        Self {
+        V {
             data: self.data + other.data,
             grad: self.grad,
             op: Vops::Add,
             children: vec![self, other],
             context: None,
+            label: None,
         }
     }
 }
 
-impl Sub for V {
-    type Output = Self;
+impl<'a> Sub for &'a mut V<'a> {
+    type Output = V<'a>;
 
     fn sub(self, other: Self) -> Self::Output {
-        Self {
-            data: self.data - other.data,
+        V {
+            data: self.data + other.data,
             grad: self.grad,
             op: Vops::Sub,
             children: vec![self, other],
             context: None,
+            label: None,
         }
     }
 }
 
-impl Mul for V {
-    type Output = Self;
+impl<'a> Mul for &'a mut V<'a> {
+    type Output = V<'a>;
 
     fn mul(self, other: Self) -> Self::Output {
-        Self {
+        V {
             data: self.data * other.data,
             grad: self.grad,
             op: Vops::Mul,
             children: vec![self, other],
             context: None,
+            label: None,
         }
     }
 }
 
-impl Div for V {
-    type Output = Self;
+impl<'a> Div for &'a mut V<'a> {
+    type Output = V<'a>;
 
     fn div(self, other: Self) -> Self::Output {
-        Self {
+        V {
             data: self.data / other.data,
             grad: self.grad,
             op: Vops::Div,
             children: vec![self, other],
             context: None,
+            label: None,
         }
     }
 }
 
 #[macro_export]
 macro_rules! v {
-    ( $x:expr ) => {
-        V::new($x)
+    ( $x:expr ) => {{
+        &mut V::new($x, None)
+    }};
+
+    ( $x:expr, $y:expr ) => {
+        &mut V::new($x, Some($y))
     };
 }
