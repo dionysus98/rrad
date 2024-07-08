@@ -37,9 +37,11 @@ pub fn div(v: &mut V) {
     };
 }
 
-pub fn exp(v: &mut V) {
+pub fn pow(v: &mut V) {
     if let Some(cl) = v.children.iter_mut().next() {
-        cl.grad += v.grad;
+        if let Some(pow) = v.context {
+            cl.grad += pow * (v.data.powf(pow - 1.0)) * v.grad;
+        }
     }
 }
 
@@ -50,15 +52,24 @@ pub fn relu(v: &mut V) {
     }
 }
 
+pub fn tanh(v: &mut V) {
+    if let Some(cl) = v.children.iter_mut().next() {
+        if let Some(t) = v.context {
+            // (1 - t**2) * out.grad
+            cl.grad += (1.0 - t.powf(2.0)) * v.grad;
+        }
+    }
+}
+
 pub fn back_propogate(v: &mut V) {
     match v.op {
         Vops::Add => add(v),
         Vops::Sub => sub(v),
         Vops::Mul => mul(v),
         Vops::Div => div(v),
-        Vops::Exp => exp(v),
+        Vops::Pow => pow(v),
         Vops::Relu => relu(v),
-        Vops::Tanh => todo!(),
+        Vops::Tanh => tanh(v),
         Vops::Sigm => todo!(),
         Vops::None => (),
     }

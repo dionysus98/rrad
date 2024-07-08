@@ -1,5 +1,8 @@
 use crate::back_prop;
-use std::ops::{Add, Div, Mul, Sub};
+use std::{
+    iter::Sum,
+    ops::{Add, Div, Mul, Sub},
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Vops {
@@ -7,24 +10,38 @@ pub enum Vops {
     Sub,
     Mul,
     Div,
-    Exp,
+    Pow,
     Relu,
     Tanh,
     Sigm,
     None,
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct V {
+#[derive(Debug, PartialEq)]
+pub struct V<'a> {
     pub data: f32,
     pub grad: f32,
     pub op: Vops,
-    pub children: Vec<V>,
+    pub children: Vec<&'a mut V<'a>>,
     pub context: Option<f32>,
     pub label: Option<&'static str>,
 }
 
-impl V {
+// just to build the topology
+impl<'a> Clone for V<'a> {
+    fn clone(&self) -> Self {
+        Self {
+            data: self.data.clone(),
+            grad: self.grad.clone(),
+            op: self.op.clone(),
+            children: vec![],
+            context: self.context.clone(),
+            label: self.label.clone(),
+        }
+    }
+}
+
+impl<'a> V<'a> {
     pub fn new(data: f32, label: Option<&'static str>) -> Self {
         Self {
             data,
@@ -36,24 +53,38 @@ impl V {
         }
     }
 
-    pub fn powf(self, pow: f32) -> Self {
+    pub fn powf(&'a mut self, pow: f32) -> Self {
         Self {
             data: self.data.powf(pow),
             grad: self.grad,
-            op: Vops::Exp,
+            op: Vops::Pow,
             children: vec![self],
             context: Some(pow),
             label: None,
         }
     }
 
-    pub fn relu(self) -> Self {
+    pub fn relu(&'a mut self) -> Self {
         Self {
             data: if self.data < 0.0 { 0.0 } else { self.data },
-            grad: self.grad,
+            grad: 0.0,
             op: Vops::Relu,
             children: vec![self],
             context: None,
+            label: None,
+        }
+    }
+
+    pub fn tanh(&'a mut self) -> Self {
+        let x = self.data;
+        let xe = 2.0 * x;
+        let t = (xe - 1.0) / xe + 1.0;
+        Self {
+            data: t,
+            grad: 0.0,
+            op: Vops::Tanh,
+            children: vec![self],
+            context: Some(t),
             label: None,
         }
     }
@@ -68,7 +99,7 @@ impl V {
         visited.to_vec()
     }
 
-    fn backward_recur(&mut self) {
+    fn backward_recur(&'a mut self) {
         back_prop::back_propogate(self);
         if !self.children.is_empty() {
             for cl in self.children.iter_mut() {
@@ -77,14 +108,20 @@ impl V {
         }
     }
 
-    pub fn backward(&mut self) {
+    pub fn backward(&'a mut self) {
         self.grad = 1.0;
         self.backward_recur();
     }
 }
 
-impl Add for V {
-    type Output = V;
+// impl<'a> Sum for &'a mut V<'a> {
+//     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+//         iter.fold(V::new(0.0, None), |a, b| (a + b))
+//     }
+// }
+
+impl<'a> Add for &'a mut V<'a> {
+    type Output = V<'a>;
 
     fn add(self, other: Self) -> Self::Output {
         V {
@@ -98,8 +135,8 @@ impl Add for V {
     }
 }
 
-impl Sub for V {
-    type Output = V;
+impl<'a> Sub for &'a mut V<'a> {
+    type Output = V<'a>;
 
     fn sub(self, other: Self) -> Self::Output {
         V {
@@ -113,8 +150,8 @@ impl Sub for V {
     }
 }
 
-impl Mul for V {
-    type Output = V;
+impl<'a> Mul for &'a mut V<'a> {
+    type Output = V<'a>;
 
     fn mul(self, other: Self) -> Self::Output {
         V {
@@ -128,8 +165,8 @@ impl Mul for V {
     }
 }
 
-impl Div for V {
-    type Output = V;
+impl<'a> Div for &'a mut V<'a> {
+    type Output = V<'a>;
 
     fn div(self, other: Self) -> Self::Output {
         V {
@@ -146,10 +183,10 @@ impl Div for V {
 #[macro_export]
 macro_rules! v {
     ( $x:expr ) => {{
-        V::new($x, None)
+        crate::engine::V::new($x, None)
     }};
 
     ( $x:expr, $y:expr ) => {
-        V::new($x, Some($y))
+        crate::engine::V::new($x, Some($y))
     };
 }

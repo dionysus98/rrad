@@ -4,24 +4,24 @@ use crate::engine::V;
 use crate::rand::rand;
 use crate::v;
 
-pub trait Module {
-    fn zero_grad(&mut self) {
+pub trait Module<'a> {
+    fn zero_grad(&'a mut self) {
         for p in self.parameters().iter_mut() {
             p.grad = 0.0
         }
     }
 
-    fn parameters(&mut self) -> Vec<&mut V>;
+    fn parameters(&'a mut self) -> Vec<&'a mut V<'a>>;
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Neuron {
-    pub w: Vec<V>,
-    pub b: V,
+pub struct Neuron<'a> {
+    pub w: Vec<V<'a>>,
+    pub b: V<'a>,
     pub nonlin: bool,
 }
 
-impl Neuron {
+impl<'a> Neuron<'a> {
     pub fn new(nin: i32, nonlin: bool) -> Self {
         Self {
             w: (0..nin).map(|_| v!(rand())).collect(),
@@ -30,47 +30,49 @@ impl Neuron {
         }
     }
 
-    pub fn call(&self, xs: &Vec<f32>) -> V {
-        let mut act = self.b.clone();
-        for (wi, xi) in zip(self.w.clone(), xs) {
-            act = act + wi * v!(*xi);
-        }
+    // pub fn call(&'a mut self, xs: &'a mut Vec<V<'a>>) -> V {
+    //     let mut dotp = zip(&mut self.w, xs)
+    //         .map(|(wi, xi)| (wi * xi))
+    //         .collect::<Vec<V>>();
 
-        if self.nonlin {
-            act
-        } else {
-            act
-        }
-    }
+    //     // let a =
+
+    //     // if self.nonlin {
+    //     //     act.tanh()
+    //     // } else {
+    //     //     act
+    //     // }
+    //     todo!()
+    // }
 }
 
-impl Module for Neuron {
-    fn parameters(&mut self) -> Vec<&mut V> {
-        let mut ps: Vec<&mut V> = self.w.iter_mut().map(|v| v).collect();
+impl<'a> Module<'a> for Neuron<'a> {
+    fn parameters(&'a mut self) -> Vec<&'a mut V<'a>> {
+        let mut ps: Vec<&'a mut V> = self.w.iter_mut().map(|v| v).collect();
         ps.push(&mut self.b);
         ps
     }
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Layer {
-    pub neurons: Vec<Neuron>,
+pub struct Layer<'a> {
+    pub neurons: Vec<Neuron<'a>>,
 }
 
-impl Layer {
+impl<'a> Layer<'a> {
     pub fn new(nin: i32, nout: i32, nonlin: bool) -> Self {
         Self {
             neurons: (0..nout).map(|_| Neuron::new(nin, nonlin)).collect(),
         }
     }
 
-    pub fn call(&self, xs: &Vec<f32>) -> Vec<V> {
-        self.neurons.iter().map(|n| n.call(&xs)).collect()
-    }
+    // pub fn call(&mut self, xs: &'a mut Vec<V<'a>>) -> V {
+    //     self.neurons.iter_mut().map(|n| n.call(xs)).last().unwrap()
+    // }
 }
 
-impl Module for Layer {
-    fn parameters(&mut self) -> Vec<&mut V> {
+impl<'a> Module<'a> for Layer<'a> {
+    fn parameters(&'a mut self) -> Vec<&'a mut V<'a>> {
         self.neurons
             .iter_mut()
             .flat_map(|v| v.parameters())
@@ -79,11 +81,11 @@ impl Module for Layer {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct MLP {
-    pub layers: Vec<Layer>,
+pub struct MLP<'a> {
+    pub layers: Vec<Layer<'a>>,
 }
 
-impl MLP {
+impl<'a> MLP<'a> {
     pub fn new(nin: i32, nouts: &[i32]) -> Self {
         let mut nin = vec![nin];
         let total = nouts.len();
@@ -98,13 +100,13 @@ impl MLP {
         Self { layers }
     }
 
-    pub fn call(&self, xs: &Vec<f32>) -> Vec<V> {
-        self.layers.iter().flat_map(|l| l.call(&xs)).collect()
-    }
+    // pub fn call(&'a mut self, xs: &'a mut Vec<V<'a>>) -> Vec<V> {
+    //     self.layers.iter_mut().map(|l| l.call(xs)).collect()
+    // }
 }
 
-impl Module for MLP {
-    fn parameters(&mut self) -> Vec<&mut V> {
+impl<'a> Module<'a> for MLP<'a> {
+    fn parameters(&'a mut self) -> Vec<&'a mut V<'a>> {
         self.layers
             .iter_mut()
             .flat_map(|v| v.parameters())
